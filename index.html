@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Kompromiss Navigator</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#000; --fg:#fff; --acc:#b5f000; --dim:rgba(181,240,0,.55); --line:rgba(181,240,0,.28);
+  --card:#070a00; --warn:#ff5a3c;
+}
+body.night{ --fg:#ff3b30; --acc:#ff3b30; --dim:rgba(255,59,48,.6); --line:rgba(255,59,48,.3); --card:#0a0000; --warn:#ff3b30; }
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg)}
+body{font-family:Aptos,"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;font-size:16px;line-height:1.35;
+  padding:12px 16px calc(24px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:4px 0 12px}
+h1{font-size:15px;letter-spacing:.12em;text-transform:uppercase;margin:0;color:var(--acc)}
+.sub{font-size:13px;color:var(--dim)}
+h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);margin:0 0 10px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 12px}
+.big{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.v small{font-size:14px;font-weight:400;color:var(--dim)}
+.eta{grid-column:1/-1;border-top:1px solid var(--line);padding-top:10px}
+.eta .v{font-size:24px;color:var(--acc)}
+.bar{height:6px;border:1px solid var(--line);border-radius:4px;margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--acc);width:0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+input,select{width:100%;background:#000;color:var(--fg);border:1px solid var(--line);border-radius:8px;
+  padding:11px 10px;font-size:18px;font-family:inherit;font-variant-numeric:tabular-nums;-webkit-appearance:none;appearance:none}
+input:focus,select:focus{outline:none;border-color:var(--acc)}
+.pos{display:grid;grid-template-columns:62px 1fr 64px;gap:6px;margin-bottom:10px}
+.pos .lbl{grid-column:1/-1;margin-bottom:-2px}
+button{background:transparent;color:var(--acc);border:1px solid var(--acc);border-radius:8px;padding:11px 12px;
+  font-size:15px;font-family:inherit;font-weight:600;cursor:pointer}
+button.solid{background:var(--acc);color:#000}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns button{flex:1}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+td{padding:7px 0;border-bottom:1px solid var(--line)}
+td:last-child{text-align:right;font-weight:600}
+.log td{font-size:12.5px;text-align:left;font-weight:400}
+.log td:last-child{text-align:right}
+.note{font-size:12.5px;color:var(--dim);margin:8px 0 0}
+.warn{color:var(--warn);font-weight:600}
+details summary{cursor:pointer;color:var(--acc);font-size:12px;letter-spacing:.14em;text-transform:uppercase;list-style:none}
+details summary::-webkit-details-marker{display:none}
+details[open] summary{margin-bottom:10px}
+.tog{padding:7px 10px;font-size:13px}
+.optbox{border:1px solid var(--acc);border-radius:8px;padding:10px;font-size:14px;line-height:1.45}
+.optbox b{color:var(--acc)}
+.help h3{font-size:14px;color:var(--acc);margin:16px 0 4px}
+.help p{font-size:14.5px;margin:0 0 8px;line-height:1.5}
+input[readonly]{border-style:dashed;color:var(--acc)}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Kompromiss · ARC+ Etappe 1</h1>
+    <div class="sub">Las Palmas → Mindelo · ETA-navigatør</div>
+  </div>
+  <button class="tog" id="nightBtn">Natt</button>
+</header>
+
+<!-- RESULT -->
+<section>
+  <div class="big">
+    <div><div class="k">Distanse til mål</div><div class="v" id="rDTF">–</div></div>
+    <div><div class="k">VMC mot mål</div><div class="v" id="rVMC">–</div></div>
+    <div><div class="k">Kurs til mål</div><div class="v" id="rBRG">–</div></div>
+    <div><div class="k">Beste styrekurs</div><div class="v" id="rHDG">–</div></div>
+    <div class="eta">
+      <div class="k">ETA mål (med nåværende VMC)</div>
+      <div class="v" id="rETA">–</div>
+      <div class="sub" id="rETA2"></div>
+    </div>
+  </div>
+  <div class="bar"><i id="rBar"></i></div>
+  <div class="sub" id="rProg" style="margin-top:6px"></div>
+  <div id="rMsg" class="note"></div>
+</section>
+
+<!-- FIX -->
+<section>
+  <h2>Posisjon</h2>
+  <div class="pos">
+    <label class="lbl">Bredde (grader · min · N/S)</label>
+    <input id="fxLatD" inputmode="decimal" placeholder="°">
+    <input id="fxLatM" inputmode="decimal" placeholder="min">
+    <select id="fxLatH"><option>N</option><option>S</option></select>
+  </div>
+  <div class="pos">
+    <label class="lbl">Lengde (grader · min · Ø/V)</label>
+    <input id="fxLonD" inputmode="decimal" placeholder="°">
+    <input id="fxLonM" inputmode="decimal" placeholder="min">
+    <select id="fxLonH"><option value="W">V</option><option value="E">Ø</option></select>
+  </div>
+  <label>Tidspunkt for posisjon (UTC)</label>
+  <input id="fxTime" type="datetime-local" style="margin-bottom:10px">
+  <label>Lim inn posisjon (fra Google Maps, plotter o.l.)</label>
+  <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:10px">
+    <input id="pasteIn" placeholder="28.1083, -15.4083" autocomplete="off" style="font-size:16px">
+    <button class="solid" id="pasteBtn">Bruk</button>
+  </div>
+  <div class="btns">
+    <button id="gpsBtn">Bruk telefonens GPS</button>
+    <button id="nowBtn">Tid = nå</button>
+  </div>
+</section>
+
+<!-- BOAT & WIND -->
+<section>
+  <h2>Båt og vind</h2>
+  <div class="row">
+    <div><label>TWD (° rett, fra)</label><input id="twd" inputmode="decimal"></div>
+    <div><label>TWS (kn)</label><input id="tws" inputmode="decimal"></div>
+  </div>
+  <div class="row">
+    <div><label>TWA (° · 52–150)</label><input id="twa" inputmode="decimal"></div>
+    <div><label>Halse</label>
+      <select id="tack">
+        <option value="auto">Auto</option>
+        <option value="stbd">Styrbord</option>
+        <option value="port">Babord</option>
+      </select></div>
+  </div>
+  <div class="optbox" id="optBox"></div>
+  <div class="btns" style="margin:8px 0 12px"><button class="solid" id="optBtn">Bruk optimal TWA</button></div>
+  <div class="row">
+    <div><label>Kilde båtfart</label>
+      <select id="bspMode"><option value="polar">Polar (auto)</option><option value="manual">Manuell</option></select></div>
+    <div><label>Polar-ytelse %</label><input id="perf" inputmode="decimal"></div>
+  </div>
+  <label>Båtfart STW (kn)</label>
+  <input id="bsp" inputmode="decimal">
+  <details style="margin-top:12px">
+    <summary>+ Strøm (valgfritt)</summary>
+    <div class="row">
+      <div><label>Retning (° rett, mot)</label><input id="cset" inputmode="decimal"></div>
+      <div><label>Fart (kn)</label><input id="cdrift" inputmode="decimal"></div>
+    </div>
+  </details>
+</section>
+
+<!-- DETAILS -->
+<section>
+  <h2>Detaljer</h2>
+  <table id="det"></table>
+</section>
+
+<!-- LOG -->
+<section>
+  <h2>Posisjonslogg</h2>
+  <div class="btns" style="margin-bottom:10px">
+    <button class="solid" id="logBtn">Logg posisjon</button>
+    <button id="clrBtn">Tøm logg</button>
+  </div>
+  <table class="log" id="logT"></table>
+  <div class="note">Logg middagsposisjon og posisjon ved vaktskifte. VMG mellom posisjonene er faktisk fremdrift mot mål — den ærligste ETA-en som finnes.</div>
+</section>
+
+<!-- WAYPOINTS -->
+<section>
+  <details>
+    <summary>+ Start- og målpunkt</summary>
+    <div class="pos">
+      <label class="lbl">Start – bredde</label>
+      <input id="stLatD" inputmode="decimal"><input id="stLatM" inputmode="decimal">
+      <select id="stLatH"><option>N</option><option>S</option></select>
+    </div>
+    <div class="pos">
+      <label class="lbl">Start – lengde</label>
+      <input id="stLonD" inputmode="decimal"><input id="stLonM" inputmode="decimal">
+      <select id="stLonH"><option value="W">V</option><option value="E">Ø</option></select>
+    </div>
+    <div class="pos">
+      <label class="lbl">Mål – bredde</label>
+      <input id="fiLatD" inputmode="decimal"><input id="fiLatM" inputmode="decimal">
+      <select id="fiLatH"><option>N</option><option>S</option></select>
+    </div>
+    <div class="pos">
+      <label class="lbl">Mål – lengde</label>
+      <input id="fiLonD" inputmode="decimal"><input id="fiLonM" inputmode="decimal">
+      <select id="fiLonH"><option value="W">V</option><option value="E">Ø</option></select>
+    </div>
+    <div class="note warn">Standardverdiene er omtrentlige (start ≈ ½ nm S for havna i Las Palmas, mål ≈ Porto Grande, Mindelo). Erstatt med eksakte koordinater for mållinjen fra ARC+ seilingsbestemmelsene.</div>
+    <div class="btns" style="margin-top:10px"><button id="resetWp">Tilbakestill</button></div>
+  </details>
+</section>
+
+<!-- HELP -->
+<section class="help">
+  <details>
+    <summary>? Forklaring</summary>
+
+    <h3>VMC mot mål</h3>
+    <p>VMC (Velocity Made on Course) sier hvor fort dere faktisk nærmer dere målet, uansett hvor baugen peker. Seiler dere 8,8 kn, men 22° ved siden av kursen til mål, er VMC 8,2 kn. Det er bare de 8,2 knopene som teller mot Mindelo.</p>
+    <p><b>ETA = distanse til mål ÷ VMC.</b> Høyest VMC gir tidligst ankomst, ikke nødvendigvis høyest båtfart.</p>
+
+    <h3>Halse</h3>
+    <p>Halsen angir hvilken side vinden kommer inn fra. <b>Styrbord halse</b> betyr vind inn fra styrbord, med bommen ut på babord side. <b>Babord halse</b> er det motsatte.</p>
+    <p>Uten spinnaker kan vi ikke seile dypere enn 150° TWA. Ligger målet rett ned vinden, må vi derfor seile i sikksakk og jibbe mellom halsene. Verktøyet regner på begge halser. På «Auto» velger det den beste, og under Detaljer ser du VMC for den andre halsen. <b>Når «Andre halse» gir bedre VMC, er det tid for å jibbe.</b></p>
+
+    <h3>Storsirkel og loksodrom</h3>
+    <p><b>Storsirkel</b> er korteste vei over jordkula, men kursen endrer seg litt underveis. <b>Loksodrom</b> er en rett strek på kartet med fast kompasskurs, og den er litt lengre.</p>
+    <p>På etappe 1 er forskjellen bare 0,1 nm og 2°, altså uten praktisk betydning. Verktøyet bruker storsirkel til distanse og ETA, og loksodromen er greiest å plotte på kartet. På etappe 2 til Grenada (2 150 nm) blir forskjellen større.</p>
+
+    <h3>Knappen «Bruk optimal TWA»</h3>
+    <p>Verktøyet tester alle vinkler fra 52° til 150° på begge halser. For hver vinkel bruker det båtfarten fra polaren (× ytelse %) og regner med strømmen. Den vinkelen som gir høyest VMC mot mål, vises i rammen.</p>
+    <p>Når du klikker, fylles TWA og halse inn automatisk. Styrekurs, båtfart, VMC og ETA oppdateres. Knappen sier hvilken vinkel du bør seile <i>nå</i>, men ikke når du skal jibbe. Sjekk den på nytt når vinden dreier.</p>
+
+    <h3>Knappen «Logg posisjon»</h3>
+    <p>Lagrer posisjon, tidspunkt og distanse til mål (DTM) på telefonen. Ved neste logging regnes <b>faktisk VMG</b> ut: hvor mange nm nærmere mål dere har kommet, delt på antall timer.</p>
+    <p>Dette er fasiten. Alt er med: strøm, sjø, jibber, rorgjenger og søvnig nattevakt. Under Detaljer gir «ETA med faktisk VMG» den mest realistiske ankomsttiden.</p>
+    <p><b>Tips:</b> Logg ved hvert vaktskifte og kl. 12 UTC. Logger du samme tidspunkt to ganger, overskrives den forrige.</p>
+  </details>
+</section>
+
+<div class="note">Distanser: storsirkel (nm). TWD = retningen vinden blåser <i>fra</i>; strømretning = retningen strømmen går <i>mot</i>. Tider i UTC; Kapp Verde = UTC−1. Polar: Kompromiss uten spinnaker, TWA 52–150°, TWS 6–20 kn — kalibrer med Polar-ytelse %. Fungerer helt offline — alle data blir på telefonen.</div>
+
+<script>
+(function(){
+const R = 3440.065; // earth radius, nm
+const KEY = 'kompromissNav_v1';
+const DEF = {
+  st:{lat:28+6.5/60, lon:-(15+24.5/60)},
+  fi:{lat:16+53.5/60, lon:-(24+59.8/60)}
+};
+const $ = id => document.getElementById(id);
+const rad = d => d*Math.PI/180, deg = r => r*180/Math.PI;
+const n360 = a => ((a%360)+360)%360;
+const n180 = a => { a = n360(a); return a>180 ? a-360 : a; };
+const num = id => { const v = parseFloat(String($(id).value).replace(',','.')); return isFinite(v) ? v : NaN; };
+
+// ---------- position fields ----------
+function readPos(p){
+  const ld = num(p+'LatD'), lm = num(p+'LatM'), od = num(p+'LonD'), om = num(p+'LonM');
+  if(!isFinite(ld) || !isFinite(od)) return null;
+  let lat = Math.abs(ld) + (isFinite(lm)?lm:0)/60, lon = Math.abs(od) + (isFinite(om)?om:0)/60;
+  if($(p+'LatH').value==='S') lat=-lat;
+  if($(p+'LonH').value==='W') lon=-lon;
+  if(Math.abs(lat)>90 || Math.abs(lon)>180) return null;
+  return {lat, lon};
+}
+function writePos(p, lat, lon){
+  const a = Math.abs(lat), o = Math.abs(lon);
+  $(p+'LatD').value = Math.floor(a); $(p+'LatM').value = ((a-Math.floor(a))*60).toFixed(2);
+  $(p+'LatH').value = lat<0?'S':'N';
+  $(p+'LonD').value = Math.floor(o); $(p+'LonM').value = ((o-Math.floor(o))*60).toFixed(2);
+  $(p+'LonH').value = lon<0?'W':'E';
+}
+function fmtPos(lat, lon){
+  const f = (v,w,h) => { const a=Math.abs(v), d=Math.floor(a); return String(d).padStart(w,'0')+'°'+((a-d)*60).toFixed(1).padStart(4,'0')+"'"+h; };
+  return f(lat,2,lat<0?'S':'N')+' '+f(lon,3,lon<0?'V':'Ø');
+}
+
+// ---------- navigation math ----------
+function gc(a, b){
+  const p1=rad(a.lat), p2=rad(b.lat), dp=p2-p1, dl=rad(b.lon-a.lon);
+  const h = Math.sin(dp/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+  const d = 2*Math.asin(Math.min(1,Math.sqrt(h)))*R;
+  const brg = n360(deg(Math.atan2(Math.sin(dl)*Math.cos(p2), Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl))));
+  return {d, brg};
+}
+function rhumb(a, b){
+  const p1=rad(a.lat), p2=rad(b.lat), dp=p2-p1;
+  let dl = rad(b.lon-a.lon); if(Math.abs(dl)>Math.PI) dl = dl>0 ? -(2*Math.PI-dl) : (2*Math.PI+dl);
+  const dpsi = Math.log(Math.tan(Math.PI/4+p2/2)/Math.tan(Math.PI/4+p1/2));
+  const q = Math.abs(dpsi)>1e-12 ? dp/dpsi : Math.cos(p1);
+  return {d: Math.sqrt(dp*dp+q*q*dl*dl)*R, brg: n360(deg(Math.atan2(dl, dpsi)))};
+}
+function ground(hdg, bsp, set, drift){
+  const vx = bsp*Math.sin(rad(hdg)) + drift*Math.sin(rad(set));
+  const vy = bsp*Math.cos(rad(hdg)) + drift*Math.cos(rad(set));
+  return {sog: Math.hypot(vx,vy), cog: n360(deg(Math.atan2(vx,vy)))};
+}
+function apparent(tws, twa, bsp){
+  const t = rad(twa);
+  const aws = Math.sqrt(tws*tws + bsp*bsp + 2*tws*bsp*Math.cos(t));
+  const awa = deg(Math.atan2(tws*Math.sin(t), tws*Math.cos(t)+bsp));
+  return {aws, awa};
+}
+
+// ---------- polar: Kompromiss (Bavaria C45, non-spinnaker) — read from Claes's polar chart ----------
+//            TWS:   6     8     10    12    14    16    20
+const TWA_BP=[52,60,75,90,110,120,135,150], TWS_BP=[6,8,10,12,14,16,20];
+const POLAR={
+  52: [5.33,6.44,7.23,7.69,8.00,8.12,8.24],
+  60: [5.73,6.79,7.56,8.01,8.20,8.42,8.58],
+  75: [6.18,7.30,7.97,8.34,8.64,8.77,9.02],
+  90: [6.25,7.51,8.18,8.59,8.86,9.09,9.54],
+  110:[6.10,7.44,8.21,8.70,9.10,9.47,10.00],
+  120:[5.87,7.17,8.13,8.59,8.98,9.46,10.39],
+  135:[5.12,6.43,7.49,8.22,8.64,9.13,10.07],
+  150:[4.18,5.41,6.42,7.34,7.81,8.28,9.09]
+};
+const TWA_MIN=52, TWA_MAX=150;
+function interp(bp, v, x){ if(x<=bp[0]) return v[0]; const n=bp.length-1; if(x>=bp[n]) return v[n];
+  for(let i=0;i<n;i++) if(x<=bp[i+1]){ const f=(x-bp[i])/(bp[i+1]-bp[i]); return v[i]+f*(v[i+1]-v[i]); } return v[n]; }
+function polarSpeed(twa, tws){ // knots, no extrapolation beyond table
+  const t=Math.max(TWA_MIN,Math.min(TWA_MAX,twa));
+  let s=Math.max(0,tws), scale=1;
+  if(s<TWS_BP[0]){ scale=s/TWS_BP[0]; s=TWS_BP[0]; } // fade to zero below 6 kn
+  return interp(TWA_BP, TWA_BP.map(a=>interp(TWS_BP,POLAR[a],s)), t)*scale;
+}
+function perfF(){ const p=num('perf'); return isFinite(p)&&p>0 ? p/100 : 1; }
+// best TWA (45–150) on either gybe for max VMC toward finish, incl. current
+function optimal(twd, tws, brg, set, drift){
+  let best=null;
+  for(let a=TWA_MIN;a<=TWA_MAX;a+=1) for(const k of ['stbd','port']){
+    const hdg=n360(k==='stbd'?twd-a:twd+a), b=polarSpeed(a,tws)*perfF(), gr=ground(hdg,b,set,drift);
+    const vmc=gr.sog*Math.cos(rad(gr.cog-brg));
+    if(!best||vmc>best.vmc) best={twa:a,tack:k,hdg,bsp:b,vmc,...gr};
+  }
+  return best;
+}
+
+// ---------- time ----------
+const DAYS=['søn','man','tir','ons','tor','fre','lør'], MON=['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+function fmtT(ms, off){ const d=new Date(ms+off*3.6e6);
+  return DAYS[d.getUTCDay()]+' '+d.getUTCDate()+'. '+MON[d.getUTCMonth()]+' '+String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0'); }
+function fmtDur(h){ const m=Math.round(h*60), d=Math.floor(m/1440), hh=Math.floor((m%1440)/60), mm=m%60;
+  return (d?d+'d ':'')+hh+'t '+String(mm).padStart(2,'0')+'m'; }
+function fixMs(){ const v=$('fxTime').value; if(!v) return Date.now();
+  const [dt,tm]=v.split('T'), [y,mo,d]=dt.split('-').map(Number), [H,M]=(tm||'0:0').split(':').map(Number);
+  return Date.UTC(y,mo-1,d,H,M); }
+function setNow(){ $('fxTime').value = new Date().toISOString().slice(0,16); }
+
+// ---------- storage ----------
+let lastOpt=null;
+const FIELDS=['fxLatD','fxLatM','fxLatH','fxLonD','fxLonM','fxLonH','fxTime','bspMode','perf','bsp','tws','twd','twa','tack','cset','cdrift',
+ 'stLatD','stLatM','stLatH','stLonD','stLonM','stLonH','fiLatD','fiLatM','fiLatH','fiLonD','fiLonM','fiLonH'];
+let state = {log:[], night:false};
+function save(){ const f={}; FIELDS.forEach(k=>f[k]=$(k).value); state.fields=f;
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function load(){ try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s) state=Object.assign(state,s); }catch(e){} }
+
+// ---------- compute ----------
+function calc(){
+  const fix=readPos('fx'), st=readPos('st'), fi=readPos('fi');
+  const tws=num('tws'), twd=num('twd'), twa=num('twa');
+  const set=isFinite(num('cset'))?num('cset'):0, drift=isFinite(num('cdrift'))?num('cdrift'):0;
+  const msg=[], det=[];
+  const polarMode=$('bspMode').value==='polar';
+  $('bsp').readOnly=polarMode;
+  if(polarMode){
+    if(isFinite(twa)&&isFinite(tws)) $('bsp').value=(polarSpeed(twa,tws)*perfF()).toFixed(1); else $('bsp').value='';
+  }
+  const bsp=num('bsp');
+  if(isFinite(twa)&&twa>TWA_MAX) msg.push('<span class="warn">TWA '+twa+'° er over grensen på 150° (ingen spinnaker). Beregnet med 150°.</span>');
+  if(isFinite(twa)&&twa<TWA_MIN) msg.push('<span class="warn">TWA under 52° — utenfor polaren. Beregnet med 52°.</span>');
+  if(isFinite(tws)&&tws>20) msg.push('Polaren slutter på 20 kn TWS — over det brukes 20 kn-raden. Rev i tide.');
+  ['rDTF','rVMC','rBRG','rHDG','rETA'].forEach(k=>$(k).textContent='–'); $('rETA2').textContent='';
+  if(!fix||!fi){ $('rMsg').textContent='Legg inn gyldig posisjon og målpunkt.'; $('det').innerHTML=''; save(); return; }
+
+  const g=gc(fix,fi), rl=rhumb(fix,fi);
+  $('rDTF').innerHTML=g.d.toFixed(1)+' <small>nm</small>';
+  $('rBRG').innerHTML=Math.round(g.brg).toString().padStart(3,'0')+'° <small>T</small>';
+  det.push(['Storsirkel kurs / dist.', Math.round(g.brg).toString().padStart(3,'0')+'° · '+g.d.toFixed(1)+' nm']);
+  det.push(['Loksodrom kurs / dist.', Math.round(rl.brg).toString().padStart(3,'0')+'° · '+rl.d.toFixed(1)+' nm']);
+
+  if(st){ const tot=gc(st,fi).d, made=Math.max(0,tot-g.d), pct=Math.min(100,made/tot*100);
+    $('rBar').style.width=pct.toFixed(1)+'%'; $('rProg').textContent=pct.toFixed(0)+'% av etappen · '+made.toFixed(0)+' av '+tot.toFixed(0)+' nm tilbakelagt'; }
+
+  const t0=fixMs();
+  if(isFinite(bsp)&&bsp>0&&isFinite(twd)&&isFinite(twa)){
+    const twaC=Math.max(TWA_MIN,Math.min(TWA_MAX,twa));
+    const opts={stbd:n360(twd-twaC), port:n360(twd+twaC)}, res={};
+    for(const k in opts){ const gr=ground(opts[k],bsp,set,drift); res[k]={hdg:opts[k], ...gr, vmc:gr.sog*Math.cos(rad(gr.cog-g.brg))}; }
+    let pick=$('tack').value; if(pick==='auto') pick = res.stbd.vmc>=res.port.vmc?'stbd':'port';
+    const r=res[pick], o=res[pick==='stbd'?'port':'stbd'];
+    $('rHDG').innerHTML=Math.round(r.hdg).toString().padStart(3,'0')+'° <small>'+(pick==='stbd'?'sb':'bb')+'</small>';
+    $('rVMC').innerHTML=r.vmc.toFixed(1)+' <small>kn</small>';
+    if(r.vmc>0.05){ const h=g.d/r.vmc, eta=t0+h*3.6e6;
+      $('rETA').textContent=fmtT(eta,0)+' UTC';
+      $('rETA2').textContent=fmtT(eta,-1)+' Kapp Verde-tid · '+fmtDur(h)+' igjen';
+    } else { $('rETA').textContent='Nærmer seg ikke'; msg.push('<span class="warn">Denne kursen tar dere ikke nærmere mål. Bytt halse eller TWA.</span>'); }
+    det.push(['Styrekurs ('+(pick==='stbd'?'styrbord':'babord')+')', Math.round(r.hdg).toString().padStart(3,'0')+'°']);
+    det.push(['COG / SOG', Math.round(r.cog).toString().padStart(3,'0')+'° · '+r.sog.toFixed(1)+' kn']);
+    det.push(['Avvik fra kurs til mål', Math.abs(n180(r.cog-g.brg)).toFixed(0)+'°']);
+    det.push(['Andre halse '+(pick==='stbd'?'(babord)':'(styrbord)'), Math.round(o.hdg).toString().padStart(3,'0')+'° · VMC '+o.vmc.toFixed(1)+' kn']);
+    if(isFinite(tws)&&tws>0){ const ap=apparent(tws,twaC,bsp);
+      det.push(['AWA / AWS', Math.abs(ap.awa).toFixed(0)+'° · '+ap.aws.toFixed(1)+' kn']); }
+    // direct course scenario
+    const twaD=Math.abs(n180(twd-g.brg));
+    det.push(['TWA ved direkte kurs', twaD.toFixed(0)+'°']);
+    if(twaD>TWA_MAX){
+      det.push(['Direkte kurs', 'ikke seilbar (>150°)']);
+      msg.push('Mål ligger over 150° TWA — dere må lense i slag med jibber. Bruk optimal vinkel.');
+    } else if(twaD>=TWA_MIN){
+      const bD=polarMode&&isFinite(tws)?polarSpeed(twaD,tws)*perfF():bsp, dir=ground(g.brg,bD,set,drift), vmcD=dir.sog*Math.cos(rad(dir.cog-g.brg));
+      if(vmcD>0.05) det.push(['ETA direkte ('+bD.toFixed(1)+' kn)', fmtT(t0+g.d/vmcD*3.6e6,0)+' UTC']);
+    } else det.push(['Direkte kurs', 'for høyt på vinden (<52°)']);
+  } else { msg.push('Legg inn TWD, TWS og TWA'+(polarMode?'':' og båtfart')+' for å få VMC og ETA.'); }
+
+  // optimal angle toward finish
+  if(isFinite(twd)&&isFinite(tws)&&tws>0){
+    const op=optimal(twd,tws,g.brg,set,drift); lastOpt=op;
+    let s='<b>Optimal:</b> TWA '+op.twa+'° '+(op.tack==='stbd'?'styrbord':'babord')+' · styrekurs '+String(Math.round(op.hdg)).padStart(3,'0')+'°'+
+      '<br>Polar '+op.bsp.toFixed(1)+' kn · VMC <b>'+op.vmc.toFixed(1)+' kn</b>';
+    if(op.vmc>0.05){ const h=g.d/op.vmc; s+='<br>ETA med optimal: <b>'+fmtT(t0+h*3.6e6,0)+' UTC</b> ('+fmtDur(h)+')'; }
+    $('optBox').innerHTML=s;
+  } else { $('optBox').innerHTML='Legg inn TWD og TWS for optimal vinkel.'; lastOpt=null; }
+
+  // actual progress from log
+  const prev=[...state.log].filter(e=>e.t<t0).sort((a,b)=>b.t-a.t)[0];
+  if(prev){ const hrs=(t0-prev.t)/3.6e6;
+    if(hrs>0.25){ const vmg=(prev.dtf-g.d)/hrs;
+      det.push(['Faktisk VMG siden '+fmtT(prev.t,0), vmg.toFixed(2)+' kn']);
+      if(vmg>0.05) det.push(['ETA med faktisk VMG', fmtT(t0+g.d/vmg*3.6e6,0)+' UTC']); } }
+
+  $('det').innerHTML=det.map(([k,v])=>'<tr><td>'+k+'</td><td>'+v+'</td></tr>').join('');
+  $('rMsg').innerHTML=msg.join('<br>');
+  save();
+}
+
+// ---------- log ----------
+function drawLog(){
+  const L=[...state.log].sort((a,b)=>a.t-b.t);
+  if(!L.length){ $('logT').innerHTML='<tr><td>Ingen posisjoner logget ennå.</td></tr>'; return; }
+  let rows='<tr><td><b>UTC</b></td><td><b>Posisjon</b></td><td><b>DTM</b></td><td><b>VMG</b></td></tr>';
+  L.forEach((e,i)=>{ let vmg='';
+    if(i>0){ const h=(e.t-L[i-1].t)/3.6e6; if(h>0) vmg=((L[i-1].dtf-e.dtf)/h).toFixed(1); }
+    rows+='<tr><td>'+fmtT(e.t,0).slice(4)+'</td><td>'+fmtPos(e.lat,e.lon)+'</td><td>'+e.dtf.toFixed(0)+'</td><td>'+vmg+'</td></tr>'; });
+  $('logT').innerHTML=rows;
+}
+$('logBtn').onclick=()=>{ const fix=readPos('fx'), fi=readPos('fi'); if(!fix||!fi){ alert('Legg inn gyldig posisjon først.'); return; }
+  const t=fixMs(); state.log=state.log.filter(e=>e.t!==t);
+  state.log.push({t, lat:fix.lat, lon:fix.lon, dtf:gc(fix,fi).d}); save(); drawLog(); calc(); };
+$('clrBtn').onclick=()=>{ if(confirm('Slette alle loggede posisjoner?')){ state.log=[]; save(); drawLog(); calc(); } };
+
+// ---------- GPS ----------
+$('gpsBtn').onclick=()=>{
+  if(!navigator.geolocation){ alert('GPS er ikke tilgjengelig i denne nettleseren.'); return; }
+  $('gpsBtn').textContent='Henter posisjon…';
+  navigator.geolocation.getCurrentPosition(p=>{
+    writePos('fx',p.coords.latitude,p.coords.longitude);
+    $('fxTime').value=new Date(p.timestamp||Date.now()).toISOString().slice(0,16);
+    $('gpsBtn').textContent='Bruk telefonens GPS'; calc();
+  }, err=>{ $('gpsBtn').textContent='Bruk telefonens GPS';
+    alert(err.code===1
+      ? 'Nettleseren gir ikke GPS-tilgang til lokale filer.\n\nGjør slik: Åpne Google Maps (virker offline), trykk og hold på den blå prikken, kopier koordinatene øverst og lim dem inn i feltet «Lim inn posisjon».'
+      : 'Ingen GPS-posisjon ennå ('+err.message+'). Prøv igjen om litt, eller lim inn posisjonen manuelt.'); },
+  {enableHighAccuracy:true, timeout:120000, maximumAge:30000}); // første fix offshore kan ta 1–2 min
+};
+$('nowBtn').onclick=()=>{ setNow(); calc(); };
+// parse pasted coordinates: decimal, deg+min, deg+min+sec, N/S/E/W/Ø/V prefix or suffix
+function parseCoords(txt){
+  let s=String(txt).toUpperCase().replace(/Ø/g,'E').replace(/\bV\b/g,'W').replace(/(\d)V/g,'$1 W');
+  const tok=s.match(/-?\d+(?:[.,]\d+)?|[NSEW]/g); if(!tok) return null;
+  const groups=[]; let cur={n:[],h:null};
+  const prefix=/[NSEW]/.test(tok[0]); // "N 28 06.5 W 015 24.5" vs "28 06.5 N 015 24.5 W"
+  for(const t of tok){
+    if(/[NSEW]/.test(t)){
+      if(prefix){ if(cur.n.length) groups.push(cur); cur={n:[],h:t}; }
+      else if(cur.n.length){ cur.h=t; groups.push(cur); cur={n:[],h:null}; }
+    } else cur.n.push(parseFloat(t.replace(',','.')));
+  }
+  if(cur.n.length) groups.push(cur);
+  let g=groups;
+  if(g.length===1&&g[0].n.length>=2&&g[0].n.length%2===0){ const k=g[0].n.length/2; g=[{n:g[0].n.slice(0,k),h:null},{n:g[0].n.slice(k),h:g[0].h}]; }
+  if(g.length!==2) return null;
+  const val=x=>{ const neg=x.n[0]<0||x.h==='S'||x.h==='W'; const a=Math.abs(x.n[0])+(x.n[1]||0)/60+(x.n[2]||0)/3600; return neg?-a:a; };
+  let la=g[0], lo=g[1];
+  if(la.h==='E'||la.h==='W'||lo.h==='N'||lo.h==='S'){ [la,lo]=[lo,la]; }
+  const lat=val(la), lon=val(lo);
+  if(!isFinite(lat)||!isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180) return null;
+  return {lat,lon};
+}
+$('pasteBtn').onclick=()=>{ const p=parseCoords($('pasteIn').value);
+  if(!p){ alert('Forstod ikke posisjonen. Eksempler:\n28.1083, -15.4083\n28°06.5\'N 015°24.5\'W'); return; }
+  writePos('fx',p.lat,p.lon); setNow(); $('pasteIn').value=''; calc(); };
+$('optBtn').onclick=()=>{ if(!lastOpt) return; $('twa').value=lastOpt.twa; $('tack').value=lastOpt.tack; calc(); };
+$('resetWp').onclick=()=>{ writePos('st',DEF.st.lat,DEF.st.lon); writePos('fi',DEF.fi.lat,DEF.fi.lon); calc(); };
+$('nightBtn').onclick=()=>{ state.night=!state.night; document.body.classList.toggle('night',state.night); save(); };
+
+// ---------- init ----------
+load();
+writePos('st',DEF.st.lat,DEF.st.lon); writePos('fi',DEF.fi.lat,DEF.fi.lon); writePos('fx',DEF.st.lat,DEF.st.lon);
+$('bspMode').value='polar'; $('perf').value=100;
+$('bsp').value=''; $('tws').value=18; $('twd').value=30; $('twa').value=140; setNow();
+if(state.fields) FIELDS.forEach(k=>{ if(state.fields[k]!==undefined && state.fields[k]!=='') $(k).value=state.fields[k]; });
+if(state.night) document.body.classList.add('night');
+FIELDS.forEach(k=>{ $(k).addEventListener('input',calc); $(k).addEventListener('change',calc); });
+drawLog(); calc();
+
+// ---------- offline-app ----------
+const st=document.createElement('div'); st.id='offStat'; st.className='note'; st.style.textAlign='center';
+document.body.appendChild(st);
+function setStat(ok,txt){ st.innerHTML=(ok?'● ':'○ ')+txt; st.style.color=ok?'var(--acc)':'var(--warn)'; }
+if('serviceWorker' in navigator && window.isSecureContext){
+  navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready)
+    .then(()=>setStat(true,'Klar for offline bruk · GPS tilgjengelig'))
+    .catch(e=>setStat(false,'Offline-lagring feilet: '+e.message));
+  if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+} else setStat(false,'Åpnet som lokal fil — GPS og offline-app krever https-adressen');
+})();
+</script>
+</body>
+</html>

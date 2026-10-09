@@ -1,6 +1,6 @@
 // Kompromiss ETA-navigatør – service worker: lagrer hele appen lokalt så den virker uten nett.
 // Med nett: henter nyeste versjon av siden. Uten nett: bruker lagret kopi.
-const CACHE = 'kompromiss-v2';
+const CACHE = 'kompromiss-v3';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

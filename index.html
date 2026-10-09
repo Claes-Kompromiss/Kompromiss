@@ -91,6 +91,20 @@ input[readonly]{border-style:dashed;color:var(--acc)}
   <div id="rMsg" class="note"></div>
 </section>
 
+<!-- LIVE GPS -->
+<section>
+  <h2>Live GPS</h2>
+  <div class="big">
+    <div><div class="k">SOG (fart over grunn)</div><div class="v" id="lvSOG">–</div></div>
+    <div><div class="k">COG (kurs over grunn)</div><div class="v" id="lvCOG">–</div></div>
+    <div><div class="k">VMC mot mål</div><div class="v" id="lvVMC">–</div></div>
+    <div><div class="k">GPS-nøyaktighet</div><div class="v" id="lvACC">–</div></div>
+    <div class="eta"><div class="k">ETA med live VMC</div><div class="v" id="lvETA">–</div><div class="sub" id="lvETA2"></div></div>
+  </div>
+  <div class="btns" style="margin-top:12px"><button class="solid" id="liveBtn">Start live GPS</button></div>
+  <div class="note" id="lvMsg">Oppdaterer fart, kurs og posisjon fortløpende. Bruker mer batteri, så slå av når du ikke trenger det.</div>
+</section>
+
 <!-- FIX -->
 <section>
   <h2>Posisjon</h2>
@@ -495,12 +509,57 @@ if(state.night) document.body.classList.add('night');
 FIELDS.forEach(k=>{ $(k).addEventListener('input',calc); $(k).addEventListener('change',calc); });
 drawLog(); calc();
 
+// ---------- live GPS (SOG/COG i knop) ----------
+let watchId=null, prevFix=null, sogS=null, cogS=null, lastFill=0;
+const MS2KN=1.943844;
+function cogAvg(a,b,w){ const x=(1-w)*Math.cos(rad(a))+w*Math.cos(rad(b)), y=(1-w)*Math.sin(rad(a))+w*Math.sin(rad(b)); return n360(deg(Math.atan2(y,x))); }
+function liveUpdate(p){
+  const c=p.coords, t=p.timestamp||Date.now(), here={lat:c.latitude,lon:c.longitude};
+  let sog=(c.speed!=null&&isFinite(c.speed))?c.speed*MS2KN:null;
+  let cog=(c.heading!=null&&isFinite(c.heading))?c.heading:null;
+  if(prevFix){ const dt=(t-prevFix.t)/3.6e6;
+    if(dt>=2/3600){ const g=gc(prevFix.p,here);
+      if(sog==null) sog=g.d/dt;
+      if(cog==null&&g.d>0.003) cog=g.brg; } }
+  if(!prevFix||(t-prevFix.t)>=2000) prevFix={p:here,t};
+  if(sog!=null) sogS = sogS==null ? sog : sogS+0.3*(sog-sogS);
+  if(cog!=null&&(sogS||0)>0.5) cogS = cogS==null ? cog : cogAvg(cogS,cog,0.3);
+  $('lvSOG').innerHTML = sogS!=null ? sogS.toFixed(1)+' <small>kn</small>' : '–';
+  $('lvCOG').innerHTML = (cogS!=null&&(sogS||0)>0.5) ? String(Math.round(cogS)).padStart(3,'0')+'° <small>T</small>' : '–';
+  $('lvACC').innerHTML = isFinite(c.accuracy) ? Math.round(c.accuracy)+' <small>m</small>' : '–';
+  const fi=readPos('fi');
+  if(fi&&sogS!=null&&cogS!=null&&sogS>0.5){
+    const g=gc(here,fi), vmc=sogS*Math.cos(rad(cogS-g.brg));
+    $('lvVMC').innerHTML=vmc.toFixed(1)+' <small>kn</small>';
+    if(vmc>0.3){ const h=g.d/vmc; $('lvETA').textContent=fmtT(t+h*3.6e6,0)+' UTC'; $('lvETA2').textContent=fmtT(t+h*3.6e6,-1)+' Kapp Verde-tid · '+fmtDur(h)+' igjen'; }
+    else { $('lvETA').textContent='Nærmer seg ikke'; $('lvETA2').textContent=''; }
+  } else { $('lvVMC').textContent='–'; $('lvETA').textContent='–'; $('lvETA2').textContent=sogS!=null&&sogS<=0.5?'Båten ligger stille':''; }
+  if(t-lastFill>=10000){ lastFill=t; writePos('fx',here.lat,here.lon);
+    $('fxTime').value=new Date(t).toISOString().slice(0,16); calc(); }
+  $('lvMsg').textContent='Sist oppdatert '+fmtT(t,0).slice(4)+' UTC · posisjonen over fylles inn automatisk.';
+}
+function liveStop(){ if(watchId!=null) navigator.geolocation.clearWatch(watchId); watchId=null;
+  $('liveBtn').textContent='Start live GPS'; $('liveBtn').classList.add('solid'); }
+$('liveBtn').onclick=()=>{
+  if(watchId!=null){ liveStop(); $('lvMsg').textContent='Live GPS stoppet.'; return; }
+  if(!navigator.geolocation){ alert('GPS er ikke tilgjengelig i denne nettleseren.'); return; }
+  prevFix=null; sogS=null; cogS=null; lastFill=0;
+  $('lvMsg').textContent='Venter på GPS … (første fix offshore kan ta 1–2 min)';
+  watchId=navigator.geolocation.watchPosition(liveUpdate, err=>{
+    $('lvMsg').textContent = err.code===1 ? 'GPS-tilgang avvist. Gi Posisjon-tillatelse til appen/nettleseren.' : 'Venter på GPS-signal … ('+err.message+')';
+    if(err.code===1) liveStop();
+  }, {enableHighAccuracy:true, maximumAge:0, timeout:120000});
+  $('liveBtn').textContent='Stopp live GPS'; $('liveBtn').classList.remove('solid');
+};
+
 // ---------- offline-app ----------
 const st=document.createElement('div'); st.id='offStat'; st.className='note'; st.style.textAlign='center';
 document.body.appendChild(st);
 function setStat(ok,txt){ st.innerHTML=(ok?'● ':'○ ')+txt; st.style.color=ok?'var(--acc)':'var(--warn)'; }
 if('serviceWorker' in navigator && window.isSecureContext){
-  navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready)
+  const hadSW=!!navigator.serviceWorker.controller; let reloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(hadSW&&!reloaded){ reloaded=true; location.reload(); } });
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(()=>navigator.serviceWorker.ready)
     .then(()=>setStat(true,'Klar for offline bruk · GPS tilgjengelig'))
     .catch(e=>setStat(false,'Offline-lagring feilet: '+e.message));
   if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
